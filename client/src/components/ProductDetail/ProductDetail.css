@@ -1,0 +1,27 @@
+.product-detail {
+  display: flex;
+  margin: 20px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-image {
+  max-width: 300px;
+  border-radius: 10px;
+}
+
+.product-info {
+  margin-left: 20px;
+}
+
+.product-info h1 {
+  margin-bottom: 10px;
+}
+
+.price {
+  font-size: 1.5em;
+  color: #e74c3c;
+  margin-bottom: 10px;
+}
