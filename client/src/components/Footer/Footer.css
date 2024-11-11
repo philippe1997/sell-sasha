@@ -2,8 +2,11 @@
   background-color: #2a0000;
   color: white;
   text-align: center;
-  padding: 15px 0;
-  position: relative;
+  padding: 0;
   bottom: 0;
   width: 100%;
+  position: sticky;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
 }
