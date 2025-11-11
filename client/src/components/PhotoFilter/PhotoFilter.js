@@ -18,7 +18,7 @@ const PhotoFilter = () => {
     "dressing",
     "dulap sub scară",
     "living",
-    "mese de machiaj",
+    "diverse",
     "paturi de mijloc",
   ];
 
