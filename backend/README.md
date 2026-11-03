@@ -45,6 +45,23 @@ The Maven wrapper downloads Maven automatically. Java 17+ is still required.
 The API listens on port 8080 by default. `GET /api/health` works without
 Cloudinary credentials.
 
+## Deploy to Vercel
+
+Deploy the backend as a separate Vercel project from the frontend, using the
+same GitHub repository:
+
+1. Import the repository and give the project a backend-specific name.
+2. Set **Root Directory** to `backend`.
+3. Select the **Container** framework preset. Vercel uses this directory's
+   `Dockerfile` to build and run the API; leave the **Install Command** and
+   **Build Command** overrides empty.
+4. Add `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and
+   `CLOUDINARY_API_SECRET` in the Vercel project's environment variables.
+   Also set `FRONTEND_ORIGIN` to the deployed frontend's origin.
+
+The container listens on port 80. `GET /api/health` does not require Cloudinary
+credentials and can be used to check the deployment.
+
 ## Endpoints
 
 - `GET /api/health` — API health check.
