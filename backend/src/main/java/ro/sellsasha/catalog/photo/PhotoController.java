@@ -1,7 +1,9 @@
 package ro.sellsasha.catalog.photo;
 
 import java.util.List;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +15,11 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api")
 public class PhotoController {
+    private static final String CATEGORIES_CACHE_CONTROL =
+            "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400";
+    private static final String PHOTOS_CACHE_CONTROL =
+            "public, max-age=60, s-maxage=300, stale-while-revalidate=3600";
+
     private final CloudinaryPhotoService photoService;
 
     public PhotoController(CloudinaryPhotoService photoService) {
@@ -20,12 +27,14 @@ public class PhotoController {
     }
 
     @GetMapping("/categories")
-    public List<String> categories() {
-        return photoService.categories();
+    public ResponseEntity<List<String>> categories() {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, CATEGORIES_CACHE_CONTROL)
+                .body(photoService.categories());
     }
 
     @GetMapping("/photos")
-    public PhotoPage photos(
+    public ResponseEntity<PhotoPage> photos(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer page,
@@ -46,7 +55,9 @@ public class PhotoController {
                     HttpStatus.BAD_REQUEST, "cursor must not exceed 4096 characters.");
         }
 
-        return photoService.getPhotos(category, cursor, pageSize);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, PHOTOS_CACHE_CONTROL)
+                .body(photoService.getPhotos(category, cursor, pageSize));
     }
 
     @GetMapping("/health")

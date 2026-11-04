@@ -20,16 +20,8 @@ async function request(path, signal) {
   return data;
 }
 
-export async function getCategories(signal) {
-  const categories = await request("/api/categories", signal);
-  if (!Array.isArray(categories) || categories.some((item) => typeof item !== "string")) {
-    throw new Error("The photo service returned an invalid category list.");
-  }
-  return categories;
-}
-
-export async function getPhotos({ category, cursor, signal }) {
-  const params = new URLSearchParams({ limit: "40" });
+export async function getPhotos({ category, cursor, limit, signal }) {
+  const params = new URLSearchParams({ limit: String(limit) });
   if (category) params.set("category", category);
   if (cursor) params.set("cursor", cursor);
   const page = await request(`/api/photos?${params}`, signal);

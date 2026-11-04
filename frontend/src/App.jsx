@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { VirtuosoGrid } from "react-virtuoso";
-import { getCategories, getPhotos } from "./api.js";
+import { getPhotos } from "./api.js";
+import { CATEGORIES } from "./categories.js";
 
 function formatCategory(category) {
   return category
@@ -171,17 +172,21 @@ export default function App() {
   const [category, setCategory] = useState("");
   const [selectedPhotoId, setSelectedPhotoId] = useState(null);
 
-  const categoriesQuery = useQuery({
-    queryKey: ["categories"],
-    queryFn: ({ signal }) => getCategories(signal),
-  });
-
   const photosQuery = useInfiniteQuery({
     queryKey: ["photos", category],
     queryFn: ({ pageParam, signal }) =>
-      getPhotos({ category, cursor: pageParam, signal }),
-    initialPageParam: undefined,
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+      getPhotos({
+        category,
+        cursor: pageParam.cursor,
+        limit: pageParam.limit,
+        signal,
+      }),
+    initialPageParam: { cursor: undefined, limit: 10 },
+    getNextPageParam: (lastPage) =>
+      lastPage.nextCursor
+        ? { cursor: lastPage.nextCursor, limit: 20 }
+        : undefined,
+    staleTime: 60 * 1000,
   });
 
   const photos = useMemo(
@@ -263,38 +268,24 @@ export default function App() {
             </span>
           </div>
 
-          {categoriesQuery.isPending ? (
-            <p className="status-message">Se încarcă categoriile…</p>
-          ) : categoriesQuery.isError ? (
-            <div className="error-message" role="alert">
-              <p>
-                Nu s-au putut încărca categoriile de imagini:{" "}
-                {categoriesQuery.error.message}
-              </p>
-              <button type="button" onClick={() => categoriesQuery.refetch()}>
-                Încearcă din nou
-              </button>
-            </div>
-          ) : (
-            <div className="category-filter">
-              <label htmlFor="category-select">Filtrează după: </label>
-              <select
-                id="category-select"
-                value={category}
-                onChange={(event) => {
-                  setSelectedPhotoId(null);
-                  setCategory(event.target.value);
-                }}
-              >
-                <option value="">Toate proiectele</option>
-                {categoriesQuery.data.map((item) => (
-                  <option key={item} value={item}>
-                    {formatCategory(item)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="category-filter">
+            <label htmlFor="category-select">Filtrează după: </label>
+            <select
+              id="category-select"
+              value={category}
+              onChange={(event) => {
+                setSelectedPhotoId(null);
+                setCategory(event.target.value);
+              }}
+            >
+              <option value="">Toate proiectele</option>
+              {CATEGORIES.map((item) => (
+                <option key={item} value={item}>
+                  {formatCategory(item)}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {photosQuery.isPending && (
             <p className="status-message">Se încarcă imaginile…</p>
