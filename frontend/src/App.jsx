@@ -171,6 +171,7 @@ function PhotoLightbox({
 export default function App() {
   const [category, setCategory] = useState("");
   const [selectedPhotoId, setSelectedPhotoId] = useState(null);
+  const [hasReachedEnd, setHasReachedEnd] = useState(false);
   const galleryRef = useRef(null);
 
   const photosQuery = useInfiniteQuery({
@@ -201,6 +202,20 @@ export default function App() {
   const selectedPhoto =
     selectedPhotoIndex >= 0 ? photos[selectedPhotoIndex] : null;
   const isLightboxOpen = selectedPhoto !== null;
+
+  useEffect(() => {
+    if (!hasReachedEnd || photosQuery.isFetching) return;
+
+    setHasReachedEnd(false);
+    if (photosQuery.hasNextPage) {
+      photosQuery.fetchNextPage({ cancelRefetch: false });
+    }
+  }, [
+    hasReachedEnd,
+    photosQuery.fetchNextPage,
+    photosQuery.hasNextPage,
+    photosQuery.isFetching,
+  ]);
 
   useEffect(() => {
     if (!isLightboxOpen) return;
@@ -289,6 +304,7 @@ export default function App() {
               value={category}
               onChange={(event) => {
                 setSelectedPhotoId(null);
+                setHasReachedEnd(false);
                 galleryRef.current?.scrollIntoView({ block: "start" });
                 setCategory(event.target.value);
               }}
@@ -334,14 +350,7 @@ export default function App() {
               data={photos}
               overscan={500}
               increaseViewportBy={{ top: 400, bottom: 1000 }}
-              endReached={() => {
-                if (
-                  photosQuery.hasNextPage &&
-                  !photosQuery.isFetching
-                ) {
-                  photosQuery.fetchNextPage({ cancelRefetch: false });
-                }
-              }}
+              endReached={() => setHasReachedEnd(true)}
               computeItemKey={(_index, photo) => photo.id}
               itemContent={(_index, photo) => (
                 <PhotoCard
