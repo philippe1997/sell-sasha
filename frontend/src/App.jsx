@@ -103,15 +103,15 @@ function PhotoLightbox({
         if (deltaX < 0 && canGoNext && !waitingForNextPage) onNext();
         if (deltaX > 0 && photoIndex > 0) onPrevious();
       }}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
     >
       <div
         className="lightbox-content"
         role="dialog"
         aria-modal="true"
         aria-label="Vizualizator de imagini"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
       >
         <button
           className="lightbox-close"
@@ -200,6 +200,18 @@ export default function App() {
   );
   const selectedPhoto =
     selectedPhotoIndex >= 0 ? photos[selectedPhotoIndex] : null;
+  const isLightboxOpen = selectedPhoto !== null;
+
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isLightboxOpen]);
 
   useEffect(() => {
     if (
