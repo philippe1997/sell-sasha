@@ -3,7 +3,12 @@
 React and Vite frontend for the Cloudinary furniture catalog API. The gallery
 requests 10 photos initially and 20 photos on each subsequent page, asks the
 backend to filter by category, and uses `react-virtuoso` to keep off-screen
-photo cards out of the DOM.
+photo cards out of the DOM. Images in the virtualized viewport load eagerly,
+avoiding a second lazy-loading mechanism that can defer images during fast
+scrolling; the virtualizer renders an extra viewport ahead to give images time
+to load. Changing category resets the gallery's virtualized list and scroll
+position. The compressed hero image is preloaded to reduce the largest
+first-load download.
 
 ## Run
 
@@ -39,7 +44,7 @@ The category list is bundled with the frontend, so rendering the filter does
 not require a categories API request. Keep `frontend/src/categories.js` in sync
 with the backend's `CLOUDINARY_CATEGORIES` setting; the backend validates
 selected categories before querying Cloudinary. Photo pages are cached for five
-minutes at Vercel's CDN, and the browser reuses them for one minute.
+minutes at Vercel's CDN and in the browser.
 
 ## Production build
 

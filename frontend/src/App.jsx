@@ -32,7 +32,7 @@ function PhotoCard({ photo, onOpen }) {
         <img
           src={photo.thumbnailUrl}
           alt={photo.publicId}
-          loading="lazy"
+          loading="eager"
           decoding="async"
           onError={() => setFailed(true)}
         />
@@ -171,6 +171,7 @@ function PhotoLightbox({
 export default function App() {
   const [category, setCategory] = useState("");
   const [selectedPhotoId, setSelectedPhotoId] = useState(null);
+  const galleryRef = useRef(null);
 
   const photosQuery = useInfiniteQuery({
     queryKey: ["photos", category],
@@ -186,7 +187,7 @@ export default function App() {
       lastPage.nextCursor
         ? { cursor: lastPage.nextCursor, limit: 20 }
         : undefined,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 
   const photos = useMemo(
@@ -252,6 +253,7 @@ export default function App() {
         </header>
 
         <section
+          ref={galleryRef}
           className="gallery-section"
           id="gallery"
           aria-label="Galerie de mobilier"
@@ -275,6 +277,7 @@ export default function App() {
               value={category}
               onChange={(event) => {
                 setSelectedPhotoId(null);
+                galleryRef.current?.scrollIntoView({ block: "start" });
                 setCategory(event.target.value);
               }}
             >
@@ -313,16 +316,18 @@ export default function App() {
 
           {photos.length > 0 && (
             <VirtuosoGrid
+              key={category}
               className="photo-grid-scroller"
               useWindowScroll
               data={photos}
               overscan={500}
+              increaseViewportBy={{ top: 400, bottom: 1000 }}
               endReached={() => {
                 if (
                   photosQuery.hasNextPage &&
-                  !photosQuery.isFetchingNextPage
+                  !photosQuery.isFetching
                 ) {
-                  photosQuery.fetchNextPage();
+                  photosQuery.fetchNextPage({ cancelRefetch: false });
                 }
               }}
               computeItemKey={(_index, photo) => photo.id}

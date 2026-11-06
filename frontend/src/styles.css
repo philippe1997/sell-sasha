@@ -37,7 +37,7 @@ button {
   background:
     linear-gradient(90deg, rgb(20 18 15 / 48%), rgb(20 18 15 / 8%)),
     linear-gradient(0deg, rgb(20 18 15 / 12%), transparent 55%),
-    url("/furniture-header.png") center 52% / cover no-repeat;
+    url("/furniture-header.jpg") center 52% / cover no-repeat;
 }
 
 .eyebrow {
@@ -191,6 +191,10 @@ button {
   aspect-ratio: 4 / 3;
   object-fit: cover;
   transition: transform 250ms ease;
+}
+
+.photo-card img {
+  background: linear-gradient(135deg, #eeebe4, #ddd8cd);
 }
 
 .photo-card:hover img {
