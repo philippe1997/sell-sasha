@@ -1,6 +1,8 @@
 package ro.sellsasha.catalog.photo;
 
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api")
 public class PhotoController {
+    private static final Logger logger = LoggerFactory.getLogger(PhotoController.class);
+
     private static final String CATEGORIES_CACHE_CONTROL =
             "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400";
     private static final String PHOTOS_CACHE_CONTROL =
@@ -55,9 +59,29 @@ public class PhotoController {
                     HttpStatus.BAD_REQUEST, "cursor must not exceed 4096 characters.");
         }
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CACHE_CONTROL, PHOTOS_CACHE_CONTROL)
-                .body(photoService.getPhotos(category, cursor, pageSize));
+        long startedAt = System.nanoTime();
+        try {
+            PhotoPage photoPage = photoService.getPhotos(category, cursor, pageSize);
+            logger.info(
+                    "Photos API handler completed: category={}, pageSize={}, hasCursor={}, photoCount={}, durationMs={}",
+                    category == null || category.isBlank() ? "all" : category,
+                    pageSize,
+                    cursor != null && !cursor.isBlank(),
+                    photoPage.photos().size(),
+                    elapsedMillis(startedAt));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CACHE_CONTROL, PHOTOS_CACHE_CONTROL)
+                    .body(photoPage);
+        } catch (RuntimeException exception) {
+            logger.warn(
+                    "Photos API handler failed: category={}, pageSize={}, hasCursor={}, durationMs={}, error={}",
+                    category == null || category.isBlank() ? "all" : category,
+                    pageSize,
+                    cursor != null && !cursor.isBlank(),
+                    elapsedMillis(startedAt),
+                    exception.getClass().getSimpleName());
+            throw exception;
+        }
     }
 
     @GetMapping("/health")
@@ -66,5 +90,10 @@ public class PhotoController {
     }
 
     public record Health(String status) {
+    }
+
+    private static long elapsedMillis(long startedAt) {
+        return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(
+                System.nanoTime() - startedAt);
     }
 }

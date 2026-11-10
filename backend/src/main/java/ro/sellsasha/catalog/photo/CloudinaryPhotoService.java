@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,6 +20,8 @@ import ro.sellsasha.catalog.config.CloudinaryProperties;
 
 @Service
 public class CloudinaryPhotoService {
+    private static final Logger logger = LoggerFactory.getLogger(CloudinaryPhotoService.class);
+
     private final RestClient cloudinary;
     private final CloudinaryProperties properties;
 
@@ -93,14 +97,33 @@ public class CloudinaryPhotoService {
             request.put("next_cursor", cursor);
         }
 
-        return cloudinary.post()
-                .uri(uriBuilder -> uriBuilder
-                        .pathSegment(properties.cloudName(), "resources", "search")
-                        .build())
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(request)
-                .retrieve()
-                .body(JsonNode.class);
+        long startedAt = System.nanoTime();
+        try {
+            JsonNode response = cloudinary.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .pathSegment(properties.cloudName(), "resources", "search")
+                            .build())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .body(JsonNode.class);
+            logger.info(
+                    "Cloudinary photo search completed: category={}, pageSize={}, hasCursor={}, durationMs={}",
+                    category == null ? "all" : category,
+                    pageSize,
+                    cursor != null && !cursor.isBlank(),
+                    elapsedMillis(startedAt));
+            return response;
+        } catch (RestClientException exception) {
+            logger.warn(
+                    "Cloudinary photo search failed: category={}, pageSize={}, hasCursor={}, durationMs={}, error={}",
+                    category == null ? "all" : category,
+                    pageSize,
+                    cursor != null && !cursor.isBlank(),
+                    elapsedMillis(startedAt),
+                    exception.getClass().getSimpleName());
+            throw exception;
+        }
     }
 
     private String folderExpression(String category) {
@@ -174,5 +197,10 @@ public class CloudinaryPhotoService {
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private static long elapsedMillis(long startedAt) {
+        return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(
+                System.nanoTime() - startedAt);
     }
 }

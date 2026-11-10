@@ -4,11 +4,12 @@ React and Vite frontend for the Cloudinary furniture catalog API. The gallery
 requests 10 photos initially and 20 photos on each subsequent page, asks the
 backend to filter by category, and uses `react-virtuoso` to keep off-screen
 photo cards out of the DOM. Images in the virtualized viewport load eagerly,
-avoiding a second lazy-loading mechanism that can defer images during fast
-scrolling; the virtualizer renders an extra viewport ahead to give images time
-to load. Changing category resets the gallery's virtualized list and scroll
-position. The compressed hero image is preloaded to reduce the largest
-first-load download.
+while off-screen cards load lazily. The first three visible images receive high
+fetch priority; other visible images load eagerly at normal priority. The
+virtualizer renders an extra viewport ahead to give lazy-loaded images time to
+load during scrolling. Changing category resets the gallery's virtualized list
+and scroll position. The compressed hero image is preloaded to reduce the
+largest first-load download.
 
 ## Run
 

@@ -77,3 +77,20 @@ for one minute, and the cache holds at most 500 pages.
 
 The API returns Cloudinary-generated `f_auto,q_auto` thumbnail and display URLs
 so the gallery downloads appropriately sized images instead of full originals.
+
+## Diagnose photo API latency
+
+The backend writes `Photos API handler completed` and `Cloudinary photo search
+completed` timing messages to standard output. In Vercel, open the backend
+project's **Logs** and filter for `/api/photos` requests or these messages.
+Compare `durationMs` for the handler with the Cloudinary search:
+
+- A slow Cloudinary search alongside a slow handler points to Cloudinary Admin
+  API latency.
+- A fast Cloudinary search but a slow handler points to backend processing.
+- A handler message without a matching Cloudinary search message usually means
+  the page was served from the backend's in-memory cache.
+
+Vercel's request duration may still exceed the handler duration; that difference
+includes platform startup and request/response overhead. These timings do not
+include the browser's subsequent downloads from `res.cloudinary.com`.

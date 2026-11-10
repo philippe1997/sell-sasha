@@ -10,7 +10,7 @@ function formatCategory(category) {
     : category;
 }
 
-function PhotoCard({ photo, onOpen }) {
+function PhotoCard({ photo, onOpen, isVisible, isPriority }) {
   const [failed, setFailed] = useState(false);
 
   return (
@@ -32,8 +32,9 @@ function PhotoCard({ photo, onOpen }) {
         <img
           src={photo.thumbnailUrl}
           alt={photo.publicId}
-          loading="eager"
+          loading={isVisible ? "eager" : "lazy"}
           decoding="async"
+          fetchPriority={isPriority ? "high" : "auto"}
           onError={() => setFailed(true)}
         />
       )}
@@ -172,6 +173,10 @@ export default function App() {
   const [category, setCategory] = useState("");
   const [selectedPhotoId, setSelectedPhotoId] = useState(null);
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
+  const [visibleRange, setVisibleRange] = useState({
+    startIndex: 0,
+    endIndex: 2,
+  });
   const galleryRef = useRef(null);
 
   const photosQuery = useInfiniteQuery({
@@ -305,6 +310,7 @@ export default function App() {
               onChange={(event) => {
                 setSelectedPhotoId(null);
                 setHasReachedEnd(false);
+                setVisibleRange({ startIndex: 0, endIndex: 2 });
                 galleryRef.current?.scrollIntoView({ block: "start" });
                 setCategory(event.target.value);
               }}
@@ -350,11 +356,20 @@ export default function App() {
               data={photos}
               overscan={500}
               increaseViewportBy={{ top: 400, bottom: 1000 }}
+              rangeChanged={setVisibleRange}
               endReached={() => setHasReachedEnd(true)}
               computeItemKey={(_index, photo) => photo.id}
-              itemContent={(_index, photo) => (
+              itemContent={(index, photo) => (
                 <PhotoCard
                   photo={photo}
+                  isVisible={
+                    index >= visibleRange.startIndex &&
+                    index <= visibleRange.endIndex
+                  }
+                  isPriority={
+                    index >= visibleRange.startIndex &&
+                    index < visibleRange.startIndex + 3
+                  }
                   onOpen={(selected) => setSelectedPhotoId(selected.id)}
                 />
               )}
