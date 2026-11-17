@@ -1,66 +1,91 @@
 # Sell Sasha Catalog API
 
-Spring Boot 3 REST API for a Cloudinary-backed furniture photo gallery. It
-fetches photos from Cloudinary in cursor-based pages and filters a category
-before requesting the page, rather than downloading the whole catalog to
-filter it in the browser.
+Spring Boot 3 REST API for the furniture photo gallery. Image metadata is
+stored in the Supabase `public.photos` table and WebP files are stored in the
+private `gallery-images` Storage bucket. The backend proxies image downloads,
+so Supabase credentials and private storage paths are never exposed to browsers.
 
 ## Requirements
 
 - Java 17+
-- Cloudinary API credentials with Admin API access
+- A Supabase project
 
-## Configure
+## Configure Supabase
 
-Copy `.env.example` to `.env` and set your Cloudinary credentials. The backend
-loads `.env` automatically when started from the `backend` directory. You can
-also provide these values as environment variables:
+In the Supabase SQL Editor, run [`supabase-schema.sql`](./supabase-schema.sql)
+to create the image table, category index, and private Storage bucket. This is
+safe to run more than once.
 
-```powershell
-$env:CLOUDINARY_CLOUD_NAME = "your-cloud-name"
-$env:CLOUDINARY_API_KEY = "your-api-key"
-$env:CLOUDINARY_API_SECRET = "your-api-secret"
-$env:CLOUDINARY_CATEGORIES = "bucătărie,cameră tineret,comode și noptiere,dressing,diverse,dulap sub scară,living,paturi de mijloc"
-$env:CLOUDINARY_FOLDER_FIELD = "asset_folder"
-$env:FRONTEND_ORIGIN = "http://localhost:5173"
+Set the backend environment variables in `backend/.env` (copy
+`.env.example` first):
+
+```properties
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_STORAGE_BUCKET=gallery-images
+PHOTO_CATEGORIES=buc\u0103t\u0103rie,camer\u0103 tineret,comode \u0219i noptiere,dressing,diverse,dulap sub scar\u0103,living,paturi de mijloc
+FRONTEND_ORIGIN=http://localhost:5173
+ADMIN_USERNAME=your-admin-username
+ADMIN_PASSWORD=your-long-random-password
 ```
 
-Set `CLOUDINARY_CATEGORIES` to the exact Cloudinary folder names used for your
-gallery. A selected category searches that folder and its subfolders before
-pagination, so unrelated photos are never sent to the browser. The default
-`asset_folder` field is for Cloudinary dynamic-folder environments. For a
-legacy fixed-folder environment, set `CLOUDINARY_FOLDER_FIELD=folder`.
+Find the project URL and service-role key in the Supabase project settings.
+Keep the service-role key only in the backend environment; it bypasses row
+level security and must never be added to frontend variables or committed.
+The backend accepts no database URI and does not connect to MongoDB.
+The backend imports `.env` as a Java properties file, so keep non-ASCII
+category labels in `PHOTO_CATEGORIES` as `\uXXXX` escapes.
+
+## Image data model
+
+`public.photos` stores `id` (UUID), `category`, `filename`, `content_type`,
+`storage_path`, `byte_size`, and `created_at`. The actual image bytes are stored
+in a private Supabase Storage bucket, with the corresponding object path in
+`storage_path`. The schema restricts content to WebP and size to 200,000 bytes.
+RLS is enabled and access is limited to the backend's service-role key.
 
 ## Run and test
 
 ```powershell
 .\mvnw.cmd spring-boot:run
-```
-
-```powershell
 .\mvnw.cmd test
 ```
 
-The Maven wrapper downloads Maven automatically. Java 17+ is still required.
 The API listens on port 8080 by default. `GET /api/health` works without
-Cloudinary credentials.
+Supabase configuration.
+
+## Admin uploads
+
+Open `http://localhost:5173/admin`, sign in with `ADMIN_USERNAME` and
+`ADMIN_PASSWORD`, select a category, and choose up to 50 images. JPEG, PNG,
+WebP, GIF, AVIF, HEIC, and HEIF files are resized and converted to WebP in the
+browser; animated images are saved as still images. Each optimized image must
+be no larger than 200 KB. The API enforces the same size limit and checks the
+WebP file signature.
+
+The admin API uses HTTP Basic authentication and is disabled until both admin
+environment variables are set:
+
+- `GET /api/admin/session` — verify admin credentials.
+- `POST /api/admin/photos` — upload multipart form fields `category` and
+  repeated `files`.
+- `GET /api/stored-photos/{category}/{id}` — serve a private image from Storage.
+
+The frontend keeps admin credentials in memory only; use HTTPS in production.
+There is one configured admin account and no account creation or registration
+flow.
 
 ## Deploy to Vercel
 
-Deploy the backend as a separate Vercel project from the frontend, using the
-same GitHub repository:
+Deploy the backend as a separate Vercel project from the same GitHub repository:
 
-1. Import the repository and give the project a backend-specific name.
-2. Set **Root Directory** to `backend`.
-3. Select the **Container** framework preset. Vercel uses this directory's
-   `Dockerfile` to build and run the API; leave the **Install Command** and
-   **Build Command** overrides empty.
-4. Add `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and
-   `CLOUDINARY_API_SECRET` in the Vercel project's environment variables.
-   Also set `FRONTEND_ORIGIN` to the deployed frontend's origin.
+1. Set **Root Directory** to `backend` and choose the **Container** preset.
+2. Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`,
+   `PHOTO_CATEGORIES`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD`.
+3. Set `FRONTEND_ORIGIN` to the deployed frontend's exact origin.
 
-The container listens on port 80. `GET /api/health` does not require Cloudinary
-credentials and can be used to check the deployment.
+The container listens on port 80. `GET /api/health` can be used to check the
+deployment.
 
 ## Endpoints
 
@@ -71,26 +96,5 @@ credentials and can be used to check the deployment.
 - `GET /api/photos?category=bucătărie&limit=40&cursor=...` — next page.
 
 Responses include `photos`, `nextCursor`, `category`, and `pageSize`. Pass
-`nextCursor` unchanged to get the next page. A null cursor means there are no
-more results. Limits are restricted to 1–100 per request. Responses are cached
-for one minute, and the cache holds at most 500 pages.
-
-The API returns Cloudinary-generated `f_auto,q_auto` thumbnail and display URLs
-so the gallery downloads appropriately sized images instead of full originals.
-
-## Diagnose photo API latency
-
-The backend writes `Photos API handler completed` and `Cloudinary photo search
-completed` timing messages to standard output. In Vercel, open the backend
-project's **Logs** and filter for `/api/photos` requests or these messages.
-Compare `durationMs` for the handler with the Cloudinary search:
-
-- A slow Cloudinary search alongside a slow handler points to Cloudinary Admin
-  API latency.
-- A fast Cloudinary search but a slow handler points to backend processing.
-- A handler message without a matching Cloudinary search message usually means
-  the page was served from the backend's in-memory cache.
-
-Vercel's request duration may still exceed the handler duration; that difference
-includes platform startup and request/response overhead. These timings do not
-include the browser's subsequent downloads from `res.cloudinary.com`.
+`nextCursor` unchanged to get the next page. Limits are restricted to 1–100 per
+request. Responses include HTTP cache headers for browser/CDN caching.

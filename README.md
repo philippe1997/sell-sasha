@@ -1,34 +1,34 @@
 # Sell Sasha photo gallery
 
-The new full-stack gallery is split into two independent projects:
+The full-stack gallery is split into two independent projects:
 
-- [backend/](./backend/README.md) — Java 17 and Spring Boot API. It requests
-  cursor-paginated images from Cloudinary and filters categories at the API
-  before returning a page.
+- [backend/](./backend/README.md) — Java 17 and Spring Boot API. It stores image
+  metadata in Supabase Postgres and image bytes in a private Supabase Storage
+  bucket.
 - [frontend/](./frontend/README.md) — React and Vite gallery. It fetches the
   next 40 images as you scroll and virtualizes the grid so off-screen cards
   aren't kept in the DOM.
 
-The older app and API folders remain unchanged.
+The admin upload page is available at `/sell-sasha/admin` (the frontend's
+configured base path plus `/admin`). Configure `ADMIN_USERNAME`,
+`ADMIN_PASSWORD`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in the
+backend environment before using it. Create the Supabase table and private
+bucket by running [`backend/supabase-schema.sql`](./backend/supabase-schema.sql)
+in the project's SQL Editor.
 
 ## Requirements
 
 - Java 17+
 - Node.js 20.19+ or 22.12+
-- Cloudinary API credentials with Admin API access
+- A Supabase project
 
 ## Start locally (Windows PowerShell)
 
-In the `backend` terminal, set Cloudinary credentials and start Spring Boot.
-Java 17+ is required; the Maven wrapper will download Maven for you:
+Create `backend/.env` from `.env.example`, set Supabase and admin credentials,
+then start Spring Boot:
 
 ```powershell
 cd backend
-$env:CLOUDINARY_CLOUD_NAME = "your-cloud-name"
-$env:CLOUDINARY_API_KEY = "your-api-key"
-$env:CLOUDINARY_API_SECRET = "your-api-secret"
-$env:CLOUDINARY_CATEGORIES = "bucătărie,cameră tineret,comode și noptiere,dressing,diverse,dulap sub scară,living,paturi de mijloc"
-$env:CLOUDINARY_FOLDER_FIELD = "asset_folder"
 .\mvnw.cmd spring-boot:run
 ```
 
@@ -45,15 +45,12 @@ http://localhost:8080/api/health.
 
 ## Category setup
 
-Categories map to Cloudinary folder names. Set `CLOUDINARY_CATEGORIES` to the
-folder names used by your photos. Selecting a category calls
-`GET /api/photos?category=bucătărie&limit=40`; Cloudinary filters the folder and
-its subfolders before pagination, and the next page uses its `next_cursor`.
+Each photo has a category in the Supabase `public.photos` table. Its WebP bytes
+are stored in the private `gallery-images` bucket. Set `PHOTO_CATEGORIES` to
+the category labels shown in the UI. Selecting a category calls
+`GET /api/photos?category=bucătărie&limit=40`; the backend filters Supabase
+metadata and streams private image data from Storage.
 
-The API keeps a short in-memory cache for repeated page requests. The browser
-also uses a query cache, transformed responsive image URLs, lazy image decoding,
-and virtualized rendering. Cloudinary credentials stay on the backend and must
-not be added to frontend environment variables.
-
-See the project READMEs for backend and frontend configuration, endpoints, and
-production build commands.
+Supabase service-role credentials stay on the backend and must not be added to
+frontend environment variables. See the project READMEs for backend and
+frontend configuration, endpoints, and production build commands.

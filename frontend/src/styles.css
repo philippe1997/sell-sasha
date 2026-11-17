@@ -28,6 +28,7 @@ button {
 }
 
 .site-header {
+  position: relative;
   display: flex;
   min-height: min(72vh, 760px);
   flex-direction: column;
@@ -38,6 +39,198 @@ button {
     linear-gradient(90deg, rgb(20 18 15 / 48%), rgb(20 18 15 / 8%)),
     linear-gradient(0deg, rgb(20 18 15 / 12%), transparent 55%),
     url("/furniture-header.jpg") center 52% / cover no-repeat;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.site-header .site-nav {
+  position: absolute;
+  top: 1.5rem;
+  right: max(5vw, calc((100vw - 1440px) / 2));
+}
+
+.site-nav a {
+  color: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-nav a:hover,
+.site-nav a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.admin-page {
+  min-height: 100vh;
+  padding: 1.5rem max(5vw, calc((100vw - 1200px) / 2)) 4rem;
+  background: #f5f2ec;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: #37352e;
+}
+
+.admin-brand {
+  color: inherit;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.5rem;
+  text-decoration: none;
+}
+
+.admin-panel {
+  max-width: 680px;
+  margin: clamp(3rem, 8vh, 6rem) auto 0;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid #e8e4dc;
+  border-radius: 0.5rem;
+  background: #fff;
+  box-shadow: 0 1rem 3rem rgb(55 53 46 / 7%);
+}
+
+.admin-panel .eyebrow {
+  color: #8b6a3e;
+}
+
+.admin-panel h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 500;
+}
+
+.admin-description {
+  margin: 0.75rem 0 2rem;
+  color: #706c63;
+  line-height: 1.6;
+}
+
+.admin-form {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.admin-form label {
+  display: grid;
+  gap: 0.45rem;
+  color: #49463f;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.admin-form input,
+.admin-form select {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d8d3c9;
+  border-radius: 0.3rem;
+  color: #37352e;
+  background: white;
+  font: inherit;
+}
+
+.admin-form input[type="file"] {
+  padding: 0.55rem;
+}
+
+.admin-form button,
+.admin-secondary-button {
+  min-height: 2.8rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid #37352e;
+  border-radius: 0.3rem;
+  color: white;
+  background: #37352e;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.admin-form button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.admin-form button:hover:not(:disabled) {
+  background: #514e45;
+}
+
+.admin-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  color: #706c63;
+  font-size: 0.9rem;
+}
+
+.admin-secondary-button {
+  min-height: auto;
+  padding: 0.45rem 0.7rem;
+  border-color: #d8d3c9;
+  color: #49463f;
+  background: white;
+  font-size: 0.8rem;
+}
+
+.admin-hint {
+  margin: -0.75rem 0 0;
+  color: #77736b;
+  font-size: 0.8rem;
+}
+
+.admin-file-list {
+  max-height: 15rem;
+  overflow: auto;
+  margin: -0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-file-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eeeae2;
+  color: #5b584f;
+  font-size: 0.85rem;
+}
+
+.admin-file-list li span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-file-list li span:last-child {
+  flex: 0 0 auto;
+}
+
+.admin-feedback {
+  margin: 1rem 0 0;
+  line-height: 1.5;
+}
+
+.admin-feedback-error {
+  color: #8e2c22;
+}
+
+.admin-feedback-success {
+  color: #2f6d43;
 }
 
 .eyebrow {
@@ -366,6 +559,29 @@ button {
   .site-header {
     min-height: 65vh;
     background-position: 60% center;
+  }
+
+  .site-header .site-nav {
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .admin-page {
+    padding: 1rem 1rem 3rem;
+  }
+
+  .admin-header {
+    align-items: flex-start;
+  }
+
+  .admin-header .site-nav {
+    gap: 0.8rem;
+    padding-top: 0.35rem;
+  }
+
+  .admin-panel {
+    margin-top: 3rem;
+    padding: 1.3rem;
   }
 
   .gallery-section {

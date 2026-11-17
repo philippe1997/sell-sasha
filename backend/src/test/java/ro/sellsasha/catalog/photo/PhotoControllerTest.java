@@ -14,7 +14,7 @@ import org.springframework.http.HttpHeaders;
 @ExtendWith(MockitoExtension.class)
 class PhotoControllerTest {
     @Mock
-    private CloudinaryPhotoService photoService;
+    private SupabasePhotoService photoService;
 
     @InjectMocks
     private PhotoController controller;
