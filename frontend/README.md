@@ -26,7 +26,8 @@ The dev server runs on http://localhost:5173. Configure `VITE_API_BASE_URL` in
 ## Deploy to Vercel
 
 Deploy the frontend and backend as separate Vercel projects. In the frontend
-project's environment variables, set:
+project, set the Root Directory to `frontend` and configure these environment
+variables:
 
 - `VITE_API_BASE_URL` to the backend deployment origin, for example
   `https://sell-sasha-backend.vercel.app` (no `/api` suffix).
@@ -37,8 +38,12 @@ frontend deployment origin, for example `https://sell-sasha-frontend.vercel.app`
 Use the exact frontend origin without a trailing slash. Supabase service-role
 credentials belong only in the backend project.
 
-Vite embeds `VITE_*` values during the build, so redeploy the frontend after
-changing its environment variables. Verify the backend at
+`frontend/vercel.json` rewrites direct requests to `/admin` to the SPA entry
+point while keeping `/admin` in the browser URL. Vite embeds `VITE_*` values
+during the build, so redeploy the frontend after adding the rewrite or changing
+its environment variables.
+
+Verify the backend at
 `https://<backend-domain>/api/health`.
 
 The category list is bundled with the frontend, so rendering the filter does
