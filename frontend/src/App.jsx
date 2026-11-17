@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { VirtuosoGrid } from "react-virtuoso";
 import { getPhotos } from "./api.js";
+import AdminPage from "./AdminPage.jsx";
 import { CATEGORIES } from "./categories.js";
+import { isAdminPath } from "./routes.js";
 
 function formatCategory(category) {
   return category
@@ -129,7 +131,10 @@ function PhotoLightbox({
           disabled={photoIndex === 0}
           aria-label="Imaginea anterioară"
         >
-          <span className="lightbox-chevron lightbox-chevron-previous" aria-hidden="true" />
+          <span
+            className="lightbox-chevron lightbox-chevron-previous"
+            aria-hidden="true"
+          />
         </button>
         <img
           src={photo.displayUrl}
@@ -151,7 +156,10 @@ function PhotoLightbox({
           {waitingForNextPage ? (
             "…"
           ) : (
-            <span className="lightbox-chevron lightbox-chevron-next" aria-hidden="true" />
+            <span
+              className="lightbox-chevron lightbox-chevron-next"
+              aria-hidden="true"
+            />
           )}
         </button>
         <div className="lightbox-caption">
@@ -169,7 +177,7 @@ function PhotoLightbox({
   );
 }
 
-export default function App() {
+function AppGallery() {
   const [category, setCategory] = useState("");
   const [selectedPhotoId, setSelectedPhotoId] = useState(null);
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
@@ -201,6 +209,9 @@ export default function App() {
     [photosQuery.data],
   );
   const totalPhotoCount = photosQuery.data?.pages[0]?.totalCount;
+  const hasNextPage = photosQuery.hasNextPage;
+  const isFetchingNextPage = photosQuery.isFetchingNextPage;
+  const galleryError = photosQuery.isError ? photosQuery.error.message : "";
   const selectedPhotoIndex = photos.findIndex(
     (photo) => photo.id === selectedPhotoId,
   );
@@ -237,16 +248,20 @@ export default function App() {
     if (
       selectedPhotoId &&
       selectedPhotoIndex >= photos.length - 3 &&
-      photosQuery.hasNextPage &&
-      !photosQuery.isFetchingNextPage
+      hasNextPage &&
+      !isFetchingNextPage
     ) {
-      photosQuery.fetchNextPage();
+      if (photosQuery.hasNextPage && !photosQuery.isFetchingNextPage) {
+        photosQuery.fetchNextPage();
+      }
     }
   }, [
     photos.length,
     photosQuery.fetchNextPage,
     photosQuery.hasNextPage,
     photosQuery.isFetchingNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     selectedPhotoId,
     selectedPhotoIndex,
   ]);
@@ -258,12 +273,7 @@ export default function App() {
       return;
     }
 
-    if (
-      direction > 0 &&
-      targetIndex === photos.length &&
-      photosQuery.hasNextPage &&
-      !photosQuery.isFetchingNextPage
-    ) {
+    if (direction > 0 && targetIndex === photos.length && hasNextPage) {
       const result = await photosQuery.fetchNextPage();
       const nextPhoto = result.data?.pages
         .flatMap((page) => page.photos)
@@ -328,23 +338,23 @@ export default function App() {
             <p className="status-message">Se încarcă imaginile…</p>
           )}
 
-          {photosQuery.isError && photos.length === 0 && (
+          {galleryError && photos.length === 0 && (
             <div className="error-message" role="alert">
-              <p>
-                Nu s-au putut încărca imaginile: {photosQuery.error.message}
-              </p>
-              <button type="button" onClick={() => photosQuery.refetch()}>
+              <p>Nu s-au putut încărca imaginile: {galleryError}</p>
+              <button
+                type="button"
+                onClick={() => photosQuery.refetch()}
+              >
                 Încearcă din nou
               </button>
             </div>
           )}
 
           {!photosQuery.isPending &&
-            !photosQuery.isError &&
+            !galleryError &&
             photos.length === 0 && (
               <p className="status-message">
-                Nu s-au găsit imagini. Verifică dacă imaginile din Cloudinary au
-                eticheta categoriei selectate.
+                Nu s-au găsit imagini în această categorie.
               </p>
             )}
 
@@ -378,27 +388,30 @@ export default function App() {
             />
           )}
 
-          {photosQuery.isFetchingNextPage && (
+          {isFetchingNextPage && (
             <p className="status-message" aria-live="polite">
               Se încarcă mai multe imagini…
             </p>
           )}
 
-          {photosQuery.isError && photos.length > 0 && (
+          {galleryError && photos.length > 0 && (
             <div className="error-message" role="alert">
-              <p>
-                Nu s-a putut încărca următoarea pagină:{" "}
-                {photosQuery.error.message}
-              </p>
-              <button type="button" onClick={() => photosQuery.fetchNextPage()}>
+              <p>O parte din imagini nu s-au putut încărca: {galleryError}</p>
+              <button
+                type="button"
+                onClick={() => photosQuery.refetch()}
+              >
                 Încearcă din nou
               </button>
             </div>
           )}
 
-          {!photosQuery.hasNextPage && photos.length > 0 && (
-            <p className="end-message">Ai ajuns la sfârșitul galeriei.</p>
-          )}
+          {!photosQuery.isPending &&
+            !galleryError &&
+            !hasNextPage &&
+            photos.length > 0 && (
+              <p className="end-message">Ai ajuns la sfârșitul galeriei.</p>
+            )}
         </section>
 
         <PhotoLightbox
@@ -406,13 +419,9 @@ export default function App() {
           photoIndex={selectedPhotoIndex}
           photoCount={photos.length}
           totalPhotoCount={totalPhotoCount ?? photos.length}
-          canGoNext={
-            selectedPhotoIndex < photos.length - 1 || photosQuery.hasNextPage
-          }
-          isLoadingNext={photosQuery.isFetchingNextPage}
-          navigationError={
-            photosQuery.isError ? photosQuery.error.message : null
-          }
+          canGoNext={selectedPhotoIndex < photos.length - 1 || hasNextPage}
+          isLoadingNext={isFetchingNextPage}
+          navigationError={galleryError || null}
           previousPhoto={photos[selectedPhotoIndex - 1]}
           nextPhoto={photos[selectedPhotoIndex + 1]}
           onClose={() => setSelectedPhotoId(null)}
@@ -453,4 +462,8 @@ export default function App() {
       </footer>
     </>
   );
+}
+
+export default function App() {
+  return isAdminPath(window.location.pathname) ? <AdminPage /> : <AppGallery />;
 }

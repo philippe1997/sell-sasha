@@ -1,22 +1,24 @@
 package ro.sellsasha.catalog.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
-    private final CloudinaryProperties properties;
+    private final String frontendOrigin;
 
-    public WebConfiguration(CloudinaryProperties properties) {
-        this.properties = properties;
+    public WebConfiguration(
+            @Value("${FRONTEND_ORIGIN:http://localhost:5173}") String frontendOrigin) {
+        this.frontendOrigin = frontendOrigin;
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins(properties.frontendOrigin())
-                .allowedMethods("GET")
-                .allowedHeaders("Content-Type");
+                .allowedOrigins(frontendOrigin)
+                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedHeaders("Authorization", "Content-Type");
     }
 }

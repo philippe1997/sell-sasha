@@ -1,8 +1,8 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080")
   .replace(/\/+$/, "");
 
-async function request(path, signal) {
-  const response = await fetch(`${API_BASE_URL}${path}`, { signal });
+async function request(path, signal, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, signal });
   let data;
   try {
     data = await response.json();
@@ -34,5 +34,37 @@ export async function getPhotos({ category, cursor, limit, signal }) {
   ) {
     throw new Error("The photo service returned an invalid photo page.");
   }
-  return page;
+  return {
+    ...page,
+    photos: page.photos.map((photo) => ({
+      ...photo,
+      thumbnailUrl: new URL(photo.thumbnailUrl, API_BASE_URL).href,
+      displayUrl: new URL(photo.displayUrl, API_BASE_URL).href,
+    })),
+  };
+}
+
+function basicAuthorization({ username, password }) {
+  const encodedCredentials = new TextEncoder().encode(`${username}:${password}`);
+  const binaryCredentials = Array.from(encodedCredentials, (byte) =>
+    String.fromCharCode(byte),
+  ).join("");
+  return `Basic ${btoa(binaryCredentials)}`;
+}
+
+export async function verifyAdmin(credentials) {
+  await request("/api/admin/session", undefined, {
+    headers: { Authorization: basicAuthorization(credentials) },
+  });
+}
+
+export async function uploadPhotos({ category, files, credentials }) {
+  const formData = new FormData();
+  formData.set("category", category);
+  files.forEach((file) => formData.append("files", file));
+  return request("/api/admin/photos", undefined, {
+    method: "POST",
+    headers: { Authorization: basicAuthorization(credentials) },
+    body: formData,
+  });
 }

@@ -24,9 +24,9 @@ public class PhotoController {
     private static final String PHOTOS_CACHE_CONTROL =
             "public, max-age=60, s-maxage=300, stale-while-revalidate=3600";
 
-    private final CloudinaryPhotoService photoService;
+    private final SupabasePhotoService photoService;
 
-    public PhotoController(CloudinaryPhotoService photoService) {
+    public PhotoController(SupabasePhotoService photoService) {
         this.photoService = photoService;
     }
 
