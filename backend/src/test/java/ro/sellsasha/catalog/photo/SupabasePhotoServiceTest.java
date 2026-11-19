@@ -59,15 +59,11 @@ class SupabasePhotoServiceTest {
         String id = "13d3f72c-269c-4948-af58-2a900e51a822";
         server.expect(requestTo(startsWith(SUPABASE_URL + "/rest/v1/photos?")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(header("Range", "0-0"))
                 .andExpect(header("Prefer", "count=exact"))
-                .andRespond(withStatus(HttpStatus.PARTIAL_CONTENT)
+                .andRespond(withStatus(HttpStatus.OK)
                         .header("Content-Range", "0-0/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body("[]"));
-        server.expect(requestTo(startsWith(SUPABASE_URL + "/rest/v1/photos?")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("""
+                        .body("""
                         [{
                           "id":"%s",
                           "category":"living",
@@ -77,7 +73,7 @@ class SupabasePhotoServiceTest {
                           "byte_size":12,
                           "created_at":"2026-11-12T10:00:00Z"
                         }]
-                        """.formatted(id, id), MediaType.APPLICATION_JSON));
+                        """.formatted(id, id)));
 
         PhotoPage result = photoService.getPhotos(null, null, 20);
 
@@ -89,6 +85,23 @@ class SupabasePhotoServiceTest {
                     "/api/stored-photos/living/" + id);
             assertThat(photo.bytes()).isEqualTo(12);
         });
+        server.verify();
+    }
+
+    @Test
+    void usesTheCombinedPhotoRequestCountForAnEmptyCategory() {
+        server.expect(requestTo(startsWith(SUPABASE_URL + "/rest/v1/photos?")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(header("Prefer", "count=exact"))
+                .andRespond(withStatus(HttpStatus.OK)
+                        .header("Content-Range", "*/0")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("[]"));
+
+        PhotoPage result = photoService.getPhotos("living", null, 20);
+
+        assertThat(result.totalCount()).isZero();
+        assertThat(result.photos()).isEmpty();
         server.verify();
     }
 

@@ -92,17 +92,20 @@ public class SupabasePhotoService {
         }
         Cursor last = decodeCursor(cursor);
         try {
-            int totalCount = countPhotos(category);
-            JsonNode response = restClient.get()
+            ResponseEntity<JsonNode> response = restClient.get()
                     .uri(photoListUri(category, last, pageSize + 1))
-                    .headers(this::addAuthHeaders)
+                    .headers(headers -> {
+                        addAuthHeaders(headers);
+                        headers.set("Prefer", "count=exact");
+                    })
                     .retrieve()
-                    .body(JsonNode.class);
-            if (response == null || !response.isArray()) {
+                    .toEntity(JsonNode.class);
+            JsonNode rows = response.getBody();
+            if (rows == null || !rows.isArray()) {
                 throw new IllegalStateException("Supabase returned an invalid photo list.");
             }
             List<JsonNode> pageRows = new ArrayList<>();
-            response.forEach(pageRows::add);
+            rows.forEach(pageRows::add);
             boolean hasNextPage = pageRows.size() > pageSize;
             if (hasNextPage) {
                 pageRows.remove(pageRows.size() - 1);
@@ -111,6 +114,8 @@ public class SupabasePhotoService {
             String nextCursor = hasNextPage
                     ? encodeCursor(cursorFor(pageRows.get(pageRows.size() - 1)))
                     : null;
+            int totalCount = parsePhotoCount(
+                    response.getHeaders().getFirst("Content-Range"));
             return new PhotoPage(photos, nextCursor, category, pageSize, totalCount);
         } catch (RestClientException exception) {
             throw supabaseUnavailable("list category images", exception);
@@ -213,23 +218,17 @@ public class SupabasePhotoService {
         }
     }
 
-    private int countPhotos(String category) {
-        ResponseEntity<JsonNode> response = restClient.get()
-                .uri(countUri(category))
-                .headers(headers -> {
-                    addAuthHeaders(headers);
-                    headers.set("Range", "0-0");
-                    headers.set("Prefer", "count=exact");
-                })
-                .retrieve()
-                .toEntity(JsonNode.class);
-        String contentRange = response.getHeaders().getFirst("Content-Range");
+    private static int parsePhotoCount(String contentRange) {
         if (contentRange == null || !contentRange.contains("/")) {
             throw new IllegalStateException("Supabase did not return an exact photo count.");
         }
         String count = contentRange.substring(contentRange.lastIndexOf('/') + 1);
         try {
-            return Integer.parseInt(count);
+            int parsedCount = Integer.parseInt(count);
+            if (parsedCount < 0) {
+                throw new NumberFormatException("Negative photo count.");
+            }
+            return parsedCount;
         } catch (NumberFormatException exception) {
             throw new IllegalStateException("Supabase returned an invalid photo count.", exception);
         }
@@ -279,15 +278,6 @@ public class SupabasePhotoService {
                 .buildAndExpand(PHOTOS_TABLE)
                 .encode()
                 .toUri();
-    }
-
-    private java.net.URI countUri(String category) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(projectUrl)
-                .path("/rest/v1/{table}")
-                .queryParam("select", "id")
-                .queryParam("limit", 1);
-        addCategoryFilter(builder, category);
-        return builder.buildAndExpand(PHOTOS_TABLE).encode().toUri();
     }
 
     private java.net.URI photoListUri(String category, Cursor cursor, int limit) {
