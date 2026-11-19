@@ -39,7 +39,9 @@ public class StoredPhotoController {
         SupabasePhotoService.StoredPhoto storedPhoto = photoService.getPhoto(category, id);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(storedPhoto.contentType()))
-                .cacheControl(CacheControl.maxAge(java.time.Duration.ofDays(30)).cachePublic())
+                .cacheControl(CacheControl.maxAge(java.time.Duration.ofDays(30))
+                        .sMaxAge(java.time.Duration.ofDays(30))
+                        .cachePublic())
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         "inline; filename=\"" + storedPhoto.filename().replace("\"", "") + "\"")

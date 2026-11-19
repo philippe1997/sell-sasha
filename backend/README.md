@@ -70,6 +70,7 @@ environment variables are set:
 - `POST /api/admin/photos` — upload multipart form fields `category` and
   repeated `files`.
 - `GET /api/stored-photos/{category}/{id}` — serve a private image from Storage.
+  Immutable image URLs can be cached by browsers and CDNs for 30 days.
 
 The frontend keeps admin credentials in memory only; use HTTPS in production.
 There is one configured admin account and no account creation or registration
